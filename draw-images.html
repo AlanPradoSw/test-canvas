@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doom BLE</title>
+</head>
+<body>
+    <canvas id="canvas" width="640" height="400"></canvas>
+    <script>
+        const img = new Image();
+        const ctx = document.getElementById("canvas").getContext("2d");
+
+        function draw(imgNumber) {
+            function pad(num, size) {
+                num = num.toString();
+                while (num.length < size) num = "0" + num;
+                return num;
+            }
+
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = `images/ezgif-frame-${pad(imgNumber, 3)}.jpg`;
+        }
+        let imgCount = 1;
+        var timer = setInterval(function(){
+            draw(imgCount++);
+            if (imgCount > 150) {
+                clearInterval(timer);
+            }
+        }, 100); // 10 fps
+    </script>
+</body>
+</html>

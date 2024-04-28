@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doom BLE</title>
+</head>
+<body>
+    <script>
+        const IMAGE_WIDTH = 640;
+        const IMAGE_HEIGTH = 400;
+
+        const ImageToByteArray = (() => {
+            const CANVAS_ID = 'temp-canvas';
+            ctx = null;
+            canvas = null;
+
+            createCanvas = () => {
+                canvas = document.createElement('canvas');
+                canvas.id =CANVAS_ID;
+                canvas.width = IMAGE_WIDTH;
+                canvas.height = IMAGE_HEIGTH;
+                canvas.style.visibility = 'hidden';
+                ctx = canvas.getContext("2d", { willReadFrequently: true });
+                document.body.appendChild(canvas);
+                return canvas;
+            };
+
+            removeCanvas = () => {
+                document.body.removeChild(canvas);
+            };
+
+            loadImage = async (url) => {
+                const img = new Image();
+                img.src = url;
+                
+                return new Promise((resolve, reject) => {
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0);
+                        resolve();
+                    };
+                });
+            };
+
+            getPixels = (x, y) => {
+                return this.ctx.getImageData(x, y, IMAGE_WIDTH, IMAGE_HEIGTH).data;
+            };
+
+            toByteArray = async (url) => {
+                await this.loadImage(url);
+                return this.getPixels(1, 1);
+            };
+
+            return {
+                createCanvas,
+                removeCanvas,
+                toByteArray
+            };
+        })();
+
+
+        const ImageToByteStream = (() => {
+            getImageUrl = (imgNumber) => {
+                const pad = (num, size) => {
+                    num = num.toString();
+                    while (num.length < size) num = "0" + num;
+                    return num;
+                };
+                return `images/ezgif-frame-${pad(imgNumber, 3)}.jpg`;
+            }
+
+            function* stream(imageCount) {
+                let currentImage = 1;
+                const hasNext = () => { return currentImage <= imageCount; }
+                ImageToByteArray.createCanvas();
+                while(hasNext()) {
+                    const imageName = getImageUrl(currentImage++);
+                    // console.log(`Reading image ${imageName}`);
+                    const bytearray = ImageToByteArray.toByteArray(imageName);
+                    yield bytearray;
+                }
+                ImageToByteArray.removeCanvas();
+           };
+            return {
+                stream
+            };
+        })();
+
+        const VideoDisplay = (() => {
+            const CANVAS_ID = 'video-canvas';
+            let ctx = null;
+
+            createCanvas = () => {
+                const canvas = document.createElement('canvas');
+                canvas.id = CANVAS_ID;
+                canvas.width = IMAGE_WIDTH;
+                canvas.height = IMAGE_HEIGTH;
+                ctx = canvas.getContext("2d");
+                document.body.appendChild(canvas);
+                return canvas;
+            };
+
+            drawImage = (bytearray) => {
+                // Initialize a new ImageData object
+                let imageData = new ImageData(bytearray, IMAGE_WIDTH, IMAGE_HEIGTH);
+
+                // Draw image data to the canvas
+                ctx.putImageData(imageData, 0, 0);
+            };
+
+            initialize = () => {
+                createCanvas();
+            };
+
+            return {
+                initialize,
+                drawImage
+            }
+
+        })();
+
+        VideoDisplay.initialize();
+
+        window.onload = async () => {
+            const stream = ImageToByteStream.stream(150);
+            for (let message of stream) {
+                let bytearray = await message;
+                VideoDisplay.drawImage(bytearray);
+            }
+        };
+    </script>
+</body>
+</html>
